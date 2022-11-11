@@ -1,6 +1,14 @@
-import { createApp } from 'vue'
-import App from './App.vue'
-import router from './router'
-import store from './store'
+import { createApp } from 'vue';
+import App from './App.vue';
+import components from '@/components/UI/index'; // работает, если не указывать явно index в конце
 
-createApp(App).use(store).use(router).mount('#app')
+//console.log(components);
+
+const app = createApp(App);
+
+// это и есть глобальная регистрация компонентов
+components.forEach((component) => {
+	app.component(component.name, component);
+});
+
+app.mount('#app');
