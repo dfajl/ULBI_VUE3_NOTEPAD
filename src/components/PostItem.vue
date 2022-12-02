@@ -6,7 +6,12 @@
 			<div><strong>Описание:</strong> {{ post.body }}</div>
 		</div>
 		<div>
-			<my-button @click="deletePost">Удалить пост</my-button>
+			<my-button @click="deletePost" class="post_btn"
+				>Удалить пост</my-button
+			>
+			<my-button @click="openPost" class="post_btn"
+				>Открыть пост</my-button
+			>
 		</div>
 	</div>
 </template>
@@ -29,6 +34,10 @@
 				this.$emit('deletePost', this.post);
 				console.log(this.post);
 			},
+			openPost() {
+				// переходим на страницу данного поста
+				this.$router.push(`/posts/${this.post.id}`);
+			},
 		},
 	};
 </script>
@@ -42,6 +51,9 @@
 			display: flex;
 			align-items: center;
 			justify-content: space-between;
+		}
+		&_btn {
+			width: 100%;
 		}
 	}
 </style>

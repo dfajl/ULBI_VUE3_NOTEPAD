@@ -5,6 +5,7 @@
 			type="text"
 			placeholder="Название"
 			v-model:modelValue="post.title"
+			v-focus
 		/>
 		<!-- v-model="post.title" можно заменить на v-model:value="post.title" -->
 		<my-input
