@@ -8,6 +8,7 @@
 				:key="post.id"
 				:post="post"
 			/>
+			<!-- обрати внимание, что id поста мы берем с сервера (посты оттуда идут уже со своим id)  -->
 		</transition-group>
 		<!-- анимация для списка который итерирутся через  v-for. просто оборачиваем его в элемент transition-group
 		и присваиваем ему имя name="post-list". в стилях используем определенные классы-->
@@ -35,6 +36,7 @@
 		methods: {
 			deletePost(post) {
 				this.$emit('delete', post);
+				/* тут отдаем наверх тот же пост. но пишем не this.post, а post, т.к. тут post берется как элемент итерации по массиву posts*/
 				console.log(post);
 			},
 		},
@@ -62,11 +64,13 @@
 	.post-list-leave-active {
 		transition: all 0.5s;
 	}
-	.post-list-enter, .post-list-leave-to /* .list-leave-active до версии 2.1.8 */ {
+	.post-list-enter,
+	.post-list-leave-to {
 		opacity: 0;
 		transform: translateX(130px);
 	}
 	.post-list-move {
+		//анимация для сортировки
 		transition: transform 0.7s;
 	}
 	// конец анимации для списка

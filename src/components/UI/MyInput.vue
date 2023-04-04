@@ -1,6 +1,6 @@
 <template>
 	<input type="text" class="input" :value="modelValue" @input="updateInput" />
-	<!-- :value="value" @input="updateInput" именно для синтаксиса глобального компонента -->
+	<!-- :value="modelValue" @input="updateInput" именно для синтаксиса глобального компонента -->
 </template>
 
 <script>

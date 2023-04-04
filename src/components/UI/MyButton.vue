@@ -13,7 +13,7 @@
 <style lang="scss" scoped>
 	.btn {
 		/* выровнял кнопку по правому краю */
-		align-self: flex-end;
+		//align-self: flex-end;
 		background: rgb(107, 233, 233);
 		margin: 0;
 

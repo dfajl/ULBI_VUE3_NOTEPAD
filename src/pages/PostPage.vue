@@ -1,6 +1,9 @@
 <template>
 	<div>
 		<h1 style="text-align: center">Страница с постами</h1>
+		<div class="fakeBtnWrapper"></div>
+		<!-- это фейковый блок, чтобы при абсолютном позиционировании инпут не смещался вверх -->
+
 		<div class="btn_wrapper">
 			<my-button class="titleBtn" @click="showDialog">
 				Создать пост
@@ -13,16 +16,30 @@
 		<my-dialog-window v-model:show="dialogVisible">
 			<post-form @create="createPost"></post-form>
 		</my-dialog-window>
-		<my-input placeholder="Найти пост" v-model="searchQuery" v-focus />
+		<my-input
+			placeholder="Найти пост"
+			@input="searchPosts"
+			v-model="searchQuery"
+			v-focus
+		/>
 		<post-list
+			v-if="!isPostsLoading"
 			:posts="sortedAndSearchPosts"
 			@delete="deletePostItem"
-			v-if="!isPostsLoading"
 		>
 		</post-list>
 		<div class="post-item_wrapper" v-else>Загружаю посты с сервера :)</div>
 
-		<div class="observer" v-intersection="loadInfinityPosts"></div>
+		<div
+			class="observer"
+			v-intersection="{
+				method: {
+					loadInfinityPosts,
+					returnTotalPages,
+					returnPageNumber,
+				},
+			}"
+		></div>
 		<!-- это некий блок-маяк, долистав до которого, включится определенная логика 
 		цвет ему задавать не надо. но я сделаю просто для наглядности-->
 
@@ -38,7 +55,7 @@
 			>
 				{{ pageNumber }}
 			</div>
-		</div> убрал данный блок и логику по нему в комментарии. реализуем бесонечную ленту с помощью 
+		</div> убрал данный блок и логику по нему в комментарии. реализуем бесконечную ленту с помощью 
 		<div class="observer"></div>
 	-->
 	</div>
@@ -73,63 +90,31 @@
 						value: 'body',
 						name: 'По содержанию',
 					},
+					{
+						value: 'number',
+						name: 'По идентификатору',
+					},
 				],
 			};
 		},
 		methods: {
 			createPost(post) {
+				console.log(post);
 				this.posts.push(post);
 				this.dialogVisible = false;
 			},
 			deletePostItem(post) {
 				this.posts = this.posts.filter((item) => item.id != post.id);
-
-				/* let filteredPosts = [];
-				this.posts.forEach((item) => {
-					if (item.id != post.id) {
-						filteredPosts.push(item);
-					}
-				});
-				this.posts = filteredPosts;
-
-				более длинный вариант кода выше
-
-				*/
+				//this.posts.splice(post.id - 1, 1);
+				/* splice для удаления не подойдет, потому что у постов нумерация идет с 1, а в массиве - с 0  */
 			},
 			showDialog() {
 				this.dialogVisible = true;
 			},
 			async fetchPosts() {
 				try {
-					/* this.isPostsLoading = true;
-					setTimeout(async () => {
-						const response = await axios.get(
-							'https://jsonplaceholder.typicode.com/posts?',
-							{
-								//то есть передали параметры в строку с адресом
-								// https://jsonplaceholder.typicode.com/posts?_page_limit
-								params: {
-									_page: this.page,
-									_limit: this.limit,
-								},
-							},
-						);
-						this.totalPages = Math.ceil(
-							// округлили в большую сторону
-							response.headers['x-total-count'] / this.limit,
-						);
-						this.posts = response.data;
-						console.log(this.posts);
-						this.isPostsLoading = false;
-					}, 5000); */
-					/* раньше тут был этот код с setTimeout. но из-за задержки в 500мс 
-					async loadInfinityPosts() выполнялась раньше. поэтому setTimeout надо убрать. просто оставлю 
-					как пример async/await внутри setTimeout 
-					P.S. Если хочешь проверить, как подгружаются посты при setTimeout == 5000,
-					поставь this.isPostsLoading = false в конец функции loadInfinityPosts()
-					*/
-
 					this.isPostsLoading = true;
+
 					const response = await axios.get(
 						'https://jsonplaceholder.typicode.com/posts?',
 						{
@@ -146,9 +131,7 @@
 						response.headers['x-total-count'] / this.limit,
 					);
 					this.posts = response.data;
-					console.log(response.data);
 					this.isPostsLoading = false;
-					return this.totalPages; // нужно только для директивы v-intersection
 				} catch (error) {
 					alert(`Ошибка: ${error}`);
 				}
@@ -156,9 +139,10 @@
 					this.isPostsLoading = false; // по-хорошему, надо использовать блок finally
 				} */
 			},
-			//changePage(number) {
-			//this.page = number; реализую параллельно бесконечную ленту
-			//},
+			/* changePage(number) {
+				this.page = number; реализую параллельно бесконечную ленту
+				this.fetchPosts();
+			}, */
 			async loadInfinityPosts() {
 				// реализуем бесконечную ленту
 				/* 
@@ -168,7 +152,7 @@
 
 				try {
 					this.page += 1;
-					console.log(this.page);
+
 					const response = await axios.get(
 						'https://jsonplaceholder.typicode.com/posts?',
 						{
@@ -186,7 +170,8 @@
 					);
 
 					this.posts = [...this.posts, ...response.data];
-					console.log(this.posts);
+					//console.log(this.posts);
+
 					//мы при прокрутке страницы складываем все подгруженные посты в единый массив
 				} catch (error) {
 					alert(`Ошибка: ${error}`);
@@ -194,6 +179,15 @@
 				/* finally {
 					this.isPostsLoading = false; // по-хорошему, надо использовать блок finally
 				} */
+			},
+			returnTotalPages() {
+				console.log(this.totalPages);
+				return this.totalPages;
+				// нужно только для директивы v-intersection. Динамически обновляем кол-во страниц
+			},
+			returnPageNumber() {
+				console.log(this.page);
+				return this.page;
 			},
 		},
 		watch: {
@@ -204,13 +198,20 @@
 					подгрузку новых постов
 				*/
 			//},
+
+			//реализую сортировку по айдишнику
+			selectedSort() {
+				this.posts.sort((post1, post2) => {
+					console.log(post1.id - post2.id);
+					return post1.id - post2.id;
+				});
+			},
 		},
 		mounted() {
 			this.fetchPosts();
 
 			//intersectionObserverAPI
 			//console.log(this.$refs.observer);
-
 			//комменчу тут код, связанный с intersectionObserverAPI, потому что он будет вынесен в отдельную директиву
 			//const options = {
 			//root: document.querySelector('#scrollArea'), //область видимости браузера
@@ -242,7 +243,7 @@
 				// следим за примитивом, поэтому не надо делать глубокое слежение
 				// newValue - модель = selectedSort
 				this.posts.sort((post1, post2) => {
-					return post1[newValue].localeCompare(post2[newValue]);
+					return post1[newValue]?.localeCompare(post2[newValue]);
 				});
 			},
 		}, */
@@ -255,8 +256,16 @@
 					);
 				});
 
-				/* почему важно сделать проверку на существование свойства: потому что у нас вначале идет сортировка по пустой строке(selectedSort: ''). без ? левая часть будет is nоt defined и будет ошибка, потому что метод localeCompare обращается к is nоt defined. у post2 проверка не нужна, т.к. к нему нет метода изначально
-				 */
+				/* 
+					Вопрос при прохождении курса: почему sortedAndSearchPosts срабатывает первым?
+					при первой загрузке - понятно, св-во вызывается из шаблона. а потом, когда посты подгрузились?
+					ведь первым будет изменяться модель this.posts и this.selectedSort, значит, sortedPosts должны вызваться раньше?
+					при сортировке sortedAndSearchPosts все равно вызывается раньше. ПОЧЕМУ?
+				*/
+
+				/* 
+					почему важно сделать проверку на существование свойства: потому что у нас вначале идет сортировка по пустой строке(selectedSort: ''). без ? левая часть будет is nоt defined и будет ошибка, потому что метод localeCompare обращается к is nоt defined. у post2 проверка не нужна, т.к. к нему нет метода изначально
+				*/
 			},
 			sortedAndSearchPosts() {
 				console.log('computed сработал в sortedAndSearchPosts');
@@ -270,14 +279,19 @@
 			},
 
 			/* 
-				работа вычисляемых свойств sortedPosts() и sortedAndSearchPosts(): при первом запуске страницы   sortedAndSearchPosts() веренет пустой массив [], потому что посты еще не загружены из-за тайм-аута в 4 секунды, а в this.posts лежит пустой массив. Фильтрация по пустому массиву вернет пустой массив. Потом посты подгружаются. Цепочка повторяется: вызывается sortedAndSearchPosts(), потому что меняется привязка в виде this.posts. sortedAndSearchPosts() в свою очередь вызывает sortedPosts(), который клонирует массив this.posts, но сортировку не делает, т.к. post1[this.selectedSort]?.localeCompare() не проходит из-за this.selectedSort == "".
-				
-				
-				
-				но свойство отрабатывает: ведь был изменен массив this.posts(подвергся сортировке), за которым "следит" sortedPosts(). 
-				Потом сразу же запускается sortedAndSearchPosts(), потому что сработало св-во  sortedPosts(), за которым и следит sortedAndSearchPosts(). Отфильтрованный пустой массив вернется данным свойством.
 
-				потом проходит таймаут и посты грузятся. следовательно, массив this.posts изменяется, срабатывает sortedPosts(), но сортировка не запускается, потому что post1[this.selectedSort]?.localeCompare() не срабатывает,  т.к. this.selectedSort изначально равен пустой строке. ну и sortedAndSearchPosts(), соответственно, не вызывается, потому что this.posts
+				Работа описана на момент одной подгрузки (будто разом загрузился весь массив this.posts).
+
+				Работа вычисляемых свойств sortedPosts() и sortedAndSearchPosts(): при первом запуске страницы   sortedAndSearchPosts() веренет пустой массив [], потому что посты еще не загружены из-за тайм-аута в 4 секунды, а в this.posts лежит пустой массив. Фильтрация по пустому массиву вернет пустой массив. Потом посты подгружаются. Цепочка повторяется: вызывается sortedAndSearchPosts(), потому что (я так думаю) происходит перерисовка компонента <post-list> (хотя перерисовка - это результат срабатывания вычисляемого св-ва sortedAndSearchPosts). 
+
+				Далее внутри sortedAndSearchPosts вызывается sortedPosts, подгруженные посты кладутся в копию массива 
+				this.posts, но сортировка не происходит, потому что this.selectedSort - пустая строка. Следовательно, метод вернет копию изначального массива this.posts. 
+
+				Если мы что-то пишем в инпуте, меняется модель this.searchQuery, срабатывает sortedAndSearchPosts, которая вызывает this.sortedPosts. В this.sortedPosts никакая модель не изменяется, возвращается изначальная копия массива this.posts, поиск произошел. Новый массив передался в пропсы <post-list>, произошла перерисовка.
+
+				Потом я хочу отсортироваться. Заполняется модель this.selectedSort, вызывается sortedPosts() и сортируется КОПИЯ ИЗНАЧАЛЬНОГО МАССИВА this.posts, вызывается sortedAndSearchPosts() и туда передается отсортированный массив. Но ведь модель this.searchQuery заполнена, и мы фильтруемся по отсортированному массиву. Шаблон перерисовывается.
+				
+				Вот я начинаю очщать инпут. Меняется только модель this.searchQuery, св-во sortedPosts не вызывается, и происходит перерисовка на основании sortedAndSearchPosts.
 			*/
 		},
 	};
@@ -285,9 +299,21 @@
 
 <style lang="scss">
 	.btn_wrapper {
-		margin-top: 50px;
 		display: flex;
 		justify-content: space-around;
+		align-items: center;
+		border: 2px solid rgba(46, 139, 86, 0.684);
+		height: 50px;
+		background: rgba(80, 78, 78, 0.542);
+		top: 90px;
+		position: fixed;
+		left: 20px;
+		right: 20px;
+	}
+
+	.fakeBtnWrapper {
+		height: 50px;
+		margin-top: 50px;
 	}
 
 	.post-item_wrapper {
@@ -313,6 +339,6 @@
 
 	.observer {
 		height: 10px;
-		//background-color: aquamarine;
+		background-color: aquamarine;
 	}
 </style>

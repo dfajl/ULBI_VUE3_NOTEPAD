@@ -2,12 +2,23 @@
 
 export default {
 	mounted(el, binding) {
-		console.log(el, binding); // <div class="observer"></div>
-		// binding - функция, которую я передаю при вызове директивы
+		console.log(el); // <div class="observer"></div>
+		console.log(binding); // binding - объект, где в поле value лежит функция, которую я передаю при вызове директивы
+
+		/* 
+			вроде бы получилось передавать в директиву кол-во страниц в динамике
+			v-intersection="{
+				method: {
+					loadInfinityPosts,
+					returnTotalPages,
+					returnPageNumber,
+				},
+			}"
+		 */
 
 		//intersectionObserverAPI
-
 		const options = {
+			//параметры поиска пересечения
 			root: document.querySelector('#scrollArea'), //область видимости браузера
 			rootMargin: '0px',
 			threshold: 1.0,
@@ -16,13 +27,22 @@ export default {
 		// эта функция будет срабатывать при пересечении блока-маяка
 		const callback = (entries, observer) => {
 			console.log(entries);
+			console.log(observer);
+
 			/* 
 					по умолчанию функция срабатывает при пересечении вверх и вниз. а нам надо только вниз.
 					чтобы исправить это поведение, надо следить за свойством isIntersecting массива entries
 				*/
-			if (entries[0].isIntersecting) {
+			if (
+				//не вызываем директиву, когда ВСЕ 100 постов загружены
+				entries[0].isIntersecting &&
+				binding.value.method.returnPageNumber() <
+					binding.value.method.returnTotalPages()
+			) {
 				console.log('crossed');
-				binding.value(); // вызываем функцию, которую передали в объект binding
+				console.log(binding.value.method.returnPageNumber());
+				console.log(binding.value.method.returnTotalPages());
+				binding.value.method.loadInfinityPosts(); // вызываем функцию, которую передали в объект binding
 			}
 		};
 
@@ -31,3 +51,17 @@ export default {
 	},
 	name: 'intersection',
 };
+
+/* 
+	как работает дирктива:
+	изначально, при монтировке PostPage, вызывается хук mounted в данной директиве. Код полностью выполняется, до условия, но 
+	пересечения не было и функция loadInfinityPosts() не вызывается. 
+
+	Листаем страницу вниз, доходим до блока-маяка, через binding сюда переданы кол-во страниц и номер текущей страницы (10 и 1,binding.value.method.returnTotalPages() и binding.value.method.returnPageNumber(), соотвтственно ). Условие выполено, вызываем loadInfinityPosts(). 
+	Модели в PostPage обновились. Номер страницу там уже == 2. 
+
+	Листаем вниз, доходим до блока-маяка, через binding сюда переданы кол-во страниц и номер текущей страницы (10 и 2). Условие выполено, вызываем loadInfinityPosts(). 
+	Модели в PostPage обновились. Номер страницу там уже == 2. 
+
+	Что примечательно, при пересечении вызывается только const callback, код сверху не срабатывает
+*/

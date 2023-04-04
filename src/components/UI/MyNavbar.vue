@@ -5,9 +5,10 @@
 		</div>
 
 		<div>
-			<my-button>
-				<router-link to="/about">О приложении</router-link>
-			</my-button>
+			<!-- <my-button>
+				<router-link to="/about">О приложении</router-link> будет отображаться как ссылка
+			</my-button> -->
+			<my-button @click="$router.push('/about')">О приложении</my-button>
 		</div>
 
 		<div>
